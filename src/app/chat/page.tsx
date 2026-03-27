@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import Sidebar from '@/components/features/chat/Sidebar'

@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { LINGUISTICS_SYSTEM_PROMPT } from '@/lib/anthropic'
 
+export const dynamic = 'force-dynamic'
+
 export interface Message {
   role: 'user' | 'assistant'
   content: string
