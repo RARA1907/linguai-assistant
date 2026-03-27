@@ -2,8 +2,9 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { Menu } from 'lucide-react'
 import Sidebar from '@/components/features/chat/Sidebar'
 import MessageList from '@/components/features/chat/MessageList'
 import MessageInput from '@/components/features/chat/MessageInput'
@@ -28,7 +29,16 @@ export default function ChatPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [streamingContent, setStreamingContent] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null
+
+  // On desktop, sidebar is always visible; on mobile it starts closed
+  useEffect(() => {
+    const check = () => setSidebarOpen(window.innerWidth >= 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   const handleNew = useCallback(async () => {
     await createConversation('New conversation')
@@ -121,16 +131,40 @@ export default function ChatPage() {
         onNew={handleNew}
         onDelete={deleteConversation}
         onTopicClick={handleSend}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border)', background: 'var(--background)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', margin: 0 }}>
-              {activeConversation?.title ?? 'LinguAI'}
-            </h1>
-            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-              Linguistics Research Assistant · claude-sonnet-4-6
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="hamburger-btn"
+              style={{
+                display: 'none',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Menu size={20} />
+            </button>
+            <style>{`
+              @media (max-width: 768px) {
+                .hamburger-btn { display: flex !important; }
+              }
+            `}</style>
+            <div>
+              <h1 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', margin: 0 }}>
+                {activeConversation?.title ?? 'LinguAI'}
+              </h1>
+              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
+                Linguistics Research Assistant · claude-sonnet-4-6
+              </p>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {loading && <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Loading...</span>}
