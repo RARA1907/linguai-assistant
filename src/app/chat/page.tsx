@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { Menu } from 'lucide-react'
 import Sidebar from '@/components/features/chat/Sidebar'
 import MessageList from '@/components/features/chat/MessageList'
-import MessageInput from '@/components/features/chat/MessageInput'
+import MessageInput, { AttachedFile } from '@/components/features/chat/MessageInput'
 import { useConversations } from '@/hooks/useConversations'
 import { Message } from '@/types'
 
@@ -44,7 +44,7 @@ export default function ChatPage() {
     await createConversation('New conversation')
   }, [createConversation])
 
-  const handleSend = useCallback(async (content: string) => {
+  const handleSend = useCallback(async (content: string, files?: AttachedFile[]) => {
     let currentId = activeId
 
     if (!currentId) {
@@ -79,7 +79,7 @@ export default function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messagesToSend }),
+        body: JSON.stringify({ messages: messagesToSend, files }),
       })
 
       if (!res.ok || !res.body) {
