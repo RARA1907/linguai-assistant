@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "set -a && . ./.env.local && set +a && next dev -p 3001",
-    "build": "set -a && . ./.env.local && set +a && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
