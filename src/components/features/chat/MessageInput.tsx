@@ -98,7 +98,7 @@ export default function MessageInput({ onSend, isLoading, onStop }: MessageInput
   const canSend = (value.trim() || files.length > 0) && !isLoading
 
   return (
-    <div style={{ padding: '16px 24px 20px', borderTop: '1px solid var(--border)', background: 'var(--background)', paddingBottom: 'max(20px, calc(16px + env(safe-area-inset-bottom)))' }}>
+    <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--background)', paddingBottom: 'max(24px, calc(20px + env(safe-area-inset-bottom)))' }}>
       <div style={{ maxWidth: '760px', margin: '0 auto' }}>
         {/* File chips */}
         {files.length > 0 && (

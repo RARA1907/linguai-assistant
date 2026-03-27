@@ -143,7 +143,7 @@ export default function MessageList({ messages, isLoading, streamingContent, onS
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '24px 0' }}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0' }}>
       <div style={{ maxWidth: '760px', margin: '0 auto', padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {messages.map((msg) => (
           <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
