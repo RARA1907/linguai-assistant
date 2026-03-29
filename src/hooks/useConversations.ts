@@ -2,27 +2,28 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { supabase } from '@/lib/supabase'
-import { Conversation, Message } from '@/types'
+import { createClient } from '@/lib/supabase'
+import { Conversation, Message, FileMetadata } from '@/types'
 
-const SESSION_ID = 'linguai_user' // single-user app
-
-export function useConversations() {
+export function useConversations(userId: string | null) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const supabase = createClient()
 
-  // Load conversations on mount
   useEffect(() => {
-    loadConversations()
-  }, [])
+    if (userId) loadConversations()
+    else setLoading(false)
+  }, [userId])
 
   async function loadConversations() {
+    if (!userId) return
     setLoading(true)
+
     const { data, error } = await supabase
       .from('linguai_conversations')
       .select('*')
-      .eq('user_id', SESSION_ID)
+      .eq('user_id', userId)
       .order('updated_at', { ascending: false })
 
     if (error) {
@@ -39,6 +40,24 @@ export function useConversations() {
           .eq('conversation_id', row.id)
           .order('created_at', { ascending: true })
 
+        // Load file metadata for this conversation
+        const { data: fileData } = await supabase
+          .from('linguai_files')
+          .select('*')
+          .eq('conversation_id', row.id)
+
+        const filesByMessageId = new Map<string, FileMetadata[]>()
+        for (const f of (fileData || [])) {
+          const existing = filesByMessageId.get(f.message_id) || []
+          existing.push({
+            id: f.id,
+            fileName: f.file_name,
+            fileType: f.file_type,
+            fileSize: f.file_size,
+          })
+          filesByMessageId.set(f.message_id, existing)
+        }
+
         return {
           id: row.id,
           title: row.title,
@@ -47,6 +66,7 @@ export function useConversations() {
             role: m.role,
             content: m.content,
             timestamp: new Date(m.created_at),
+            files: filesByMessageId.get(m.id) || undefined,
           })),
           createdAt: new Date(row.created_at),
           updatedAt: new Date(row.updated_at),
@@ -59,10 +79,11 @@ export function useConversations() {
   }
 
   const createConversation = useCallback(async (title: string): Promise<string> => {
+    if (!userId) throw new Error('Not authenticated')
     const id = uuidv4()
     const { error } = await supabase.from('linguai_conversations').insert({
       id,
-      user_id: SESSION_ID,
+      user_id: userId,
       title,
     })
     if (error) console.error('Create conversation error:', error)
@@ -77,7 +98,7 @@ export function useConversations() {
     setConversations((prev) => [newConv, ...prev])
     setActiveId(id)
     return id
-  }, [])
+  }, [userId])
 
   const deleteConversation = useCallback(async (id: string) => {
     await supabase.from('linguai_conversations').delete().eq('id', id)
@@ -86,7 +107,6 @@ export function useConversations() {
   }, [])
 
   const addMessage = useCallback(async (conversationId: string, message: Message) => {
-    // Persist to Supabase
     await supabase.from('linguai_messages').insert({
       id: message.id,
       conversation_id: conversationId,
@@ -94,7 +114,6 @@ export function useConversations() {
       content: message.content,
     })
 
-    // Update local state
     setConversations((prev) =>
       prev.map((c) =>
         c.id === conversationId
@@ -103,12 +122,29 @@ export function useConversations() {
       )
     )
 
-    // Update conversation updated_at
     await supabase
       .from('linguai_conversations')
       .update({ updated_at: new Date().toISOString() })
       .eq('id', conversationId)
   }, [])
+
+  const saveFileMetadata = useCallback(async (
+    messageId: string,
+    conversationId: string,
+    files: { name: string; type: string; size: number }[]
+  ) => {
+    if (!userId || files.length === 0) return
+    const rows = files.map((f) => ({
+      message_id: messageId,
+      conversation_id: conversationId,
+      user_id: userId,
+      file_name: f.name,
+      file_type: f.type,
+      file_size: f.size,
+    }))
+    const { error } = await supabase.from('linguai_files').insert(rows)
+    if (error) console.error('Save file metadata error:', error)
+  }, [userId])
 
   const updateTitle = useCallback(async (conversationId: string, title: string) => {
     await supabase
@@ -129,6 +165,7 @@ export function useConversations() {
     createConversation,
     deleteConversation,
     addMessage,
+    saveFileMetadata,
     updateTitle,
   }
 }

@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import mammoth from 'mammoth'
 import { LINGUISTICS_SYSTEM_PROMPT } from '@/lib/anthropic'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +24,14 @@ type ContentBlock =
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth check
+    const supabase = await createServerSupabaseClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+    }
+
     const { messages, files } = await req.json() as { messages: Message[], files?: AttachedFile[] }
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -51,6 +61,10 @@ export async function POST(req: NextRequest) {
             type: 'image',
             source: { type: 'base64', media_type: file.type, data: file.base64 },
           })
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          const buffer = Buffer.from(file.base64, 'base64')
+          const { value: text } = await mammoth.extractRawText({ buffer })
+          contentBlocks.push({ type: 'text', text: `\n\n---\n📄 ${file.name} (Word):\n${text}` })
         } else if (file.type === 'text/plain') {
           const text = Buffer.from(file.base64, 'base64').toString('utf-8')
           contentBlocks.push({ type: 'text', text: `\n\n---\n📄 ${file.name}:\n${text}` })

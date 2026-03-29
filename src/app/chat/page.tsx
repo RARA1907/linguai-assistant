@@ -4,18 +4,33 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { useRouter } from 'next/navigation'
 import { Menu } from 'lucide-react'
+import { createClient } from '@/lib/supabase'
 import Sidebar from '@/components/features/chat/Sidebar'
 import MessageList from '@/components/features/chat/MessageList'
 import MessageInput, { AttachedFile } from '@/components/features/chat/MessageInput'
 import { useConversations } from '@/hooks/useConversations'
 import { Message } from '@/types'
+import type { User } from '@supabase/supabase-js'
 
 function generateTitle(firstMessage: string): string {
   return firstMessage.length > 45 ? firstMessage.slice(0, 45) + '...' : firstMessage
 }
 
 export default function ChatPage() {
+  const supabase = createClient()
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+      setAuthLoading(false)
+    })
+  }, [])
+
   const {
     conversations,
     activeId,
@@ -24,21 +39,27 @@ export default function ChatPage() {
     createConversation,
     deleteConversation,
     addMessage,
+    saveFileMetadata,
     updateTitle,
-  } = useConversations()
+  } = useConversations(user?.id ?? null)
 
   const [isLoading, setIsLoading] = useState(false)
   const [streamingContent, setStreamingContent] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null
 
-  // On desktop, sidebar is always visible; on mobile it starts closed
   useEffect(() => {
     const check = () => setSidebarOpen(window.innerWidth >= 768)
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }, [router])
 
   const handleNew = useCallback(async () => {
     await createConversation('New conversation')
@@ -59,6 +80,15 @@ export default function ChatPage() {
     }
 
     await addMessage(currentId, userMessage)
+
+    // Save file metadata to DB
+    if (files && files.length > 0) {
+      await saveFileMetadata(
+        userMessage.id,
+        currentId,
+        files.map((f) => ({ name: f.name, type: f.type, size: f.size }))
+      )
+    }
 
     const conv = conversations.find((c) => c.id === currentId)
     if (conv && conv.messages.length === 0) {
@@ -120,7 +150,23 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [activeId, conversations, createConversation, addMessage, updateTitle])
+  }, [activeId, conversations, createConversation, addMessage, saveFileMetadata, updateTitle])
+
+  if (authLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: 'var(--background)',
+        color: 'var(--text-secondary)',
+        fontSize: '14px',
+      }}>
+        Loading...
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--background)' }}>
@@ -133,11 +179,12 @@ export default function ChatPage() {
         onTopicClick={handleSend}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        userEmail={user?.email}
+        onLogout={handleLogout}
       />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border)', background: 'var(--background)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Hamburger — mobile only */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="hamburger-btn"

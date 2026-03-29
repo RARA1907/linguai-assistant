@@ -2,12 +2,21 @@
  * Shared TypeScript types
  */
 
+// File metadata (stored in DB for display in history)
+export interface FileMetadata {
+  id: string
+  fileName: string
+  fileType: string
+  fileSize: number
+}
+
 // Chat types
 export interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  files?: FileMetadata[]
 }
 
 export interface Conversation {

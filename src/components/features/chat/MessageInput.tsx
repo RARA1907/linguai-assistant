@@ -16,7 +16,7 @@ interface MessageInputProps {
   onStop?: () => void
 }
 
-const ACCEPTED = '.pdf,.txt,.png,.jpg,.jpeg,.webp'
+const ACCEPTED = '.pdf,.txt,.png,.jpg,.jpeg,.webp,.docx'
 const MAX_SIZE_MB = 10
 
 function FileChip({ file, onRemove }: { file: AttachedFile; onRemove: () => void }) {
@@ -121,7 +121,7 @@ export default function MessageInput({ onSend, isLoading, onStop }: MessageInput
           {/* Attach button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            title="Attach file (PDF, image, text)"
+            title="Attach file (PDF, Word, image, text)"
             style={{
               background: 'none',
               border: 'none',
@@ -215,7 +215,7 @@ export default function MessageInput({ onSend, isLoading, onStop }: MessageInput
         {/* Bottom bar: hint + model badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', padding: '0 2px' }}>
           <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
-            Enter to send · Shift+Enter for new line · 📎 PDF, image, text
+            Enter to send · Shift+Enter for new line · 📎 PDF, Word, image, text
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <span style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7 }}>Powered by</span>

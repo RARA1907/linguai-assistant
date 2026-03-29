@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Message } from '@/types'
-import { BookOpen, Copy, Check } from 'lucide-react'
+import { BookOpen, Copy, Check, FileText, Image as ImageIcon } from 'lucide-react'
 
 interface MessageListProps {
   messages: Message[]
@@ -35,6 +35,37 @@ function TypingIndicator() {
           40% { transform: translateY(-5px); opacity: 1; }
         }
       `}</style>
+    </div>
+  )
+}
+
+function FileChips({ files }: { files: Message['files'] }) {
+  if (!files || files.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+      {files.map((f) => (
+        <span
+          key={f.id}
+          style={{
+            fontSize: '11px',
+            padding: '2px 8px',
+            background: 'var(--surface-2)',
+            borderRadius: '4px',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          {f.fileType.startsWith('image/') ? <ImageIcon size={10} /> : <FileText size={10} />}
+          {f.fileName}
+          <span style={{ opacity: 0.6 }}>
+            ({f.fileSize < 1024 ? `${f.fileSize} B` : `${(f.fileSize / 1024).toFixed(0)} KB`})
+          </span>
+        </span>
+      ))}
     </div>
   )
 }
@@ -159,7 +190,10 @@ export default function MessageList({ messages, isLoading, streamingContent, onS
               }}
             >
               {msg.role === 'user' ? (
-                <p style={{ margin: 0, color: 'var(--text-primary)' }}>{msg.content}</p>
+                <>
+                  <p style={{ margin: 0, color: 'var(--text-primary)' }}>{msg.content}</p>
+                  <FileChips files={msg.files} />
+                </>
               ) : (
                 <div className="prose-linguistics">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>

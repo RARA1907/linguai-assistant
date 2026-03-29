@@ -1,7 +1,7 @@
 'use client'
 
 import { Conversation } from '@/types'
-import { Plus, MessageSquare, Trash2, BookOpen } from 'lucide-react'
+import { Plus, MessageSquare, Trash2, BookOpen, LogOut } from 'lucide-react'
 
 interface SidebarProps {
   conversations: Conversation[]
@@ -12,6 +12,8 @@ interface SidebarProps {
   onTopicClick?: (topic: string) => void
   isOpen: boolean
   onClose: () => void
+  userEmail?: string
+  onLogout?: () => void
 }
 
 const TOPICS = [
@@ -26,7 +28,7 @@ const TOPICS = [
   'Corpus Linguistics',
 ]
 
-export default function Sidebar({ conversations, activeId, onSelect, onNew, onDelete, onTopicClick, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ conversations, activeId, onSelect, onNew, onDelete, onTopicClick, isOpen, onClose, userEmail, onLogout }: SidebarProps) {
   const handleSelect = (id: string) => {
     onSelect(id)
     onClose()
@@ -41,6 +43,8 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onDe
     onTopicClick?.(`Give me an academic overview of ${topic} in linguistics`)
     onClose()
   }
+
+  const displayName = userEmail ? userEmail.split('@')[0].toUpperCase() : ''
 
   return (
     <>
@@ -208,6 +212,63 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onDe
             ))}
           </div>
         </div>
+
+        {/* User & Logout */}
+        {userEmail && (
+          <div style={{
+            padding: '12px 16px',
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#fff',
+                flexShrink: 0,
+              }}>
+                {displayName.charAt(0)}
+              </div>
+              <span style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {displayName}
+              </span>
+            </div>
+            <button
+              onClick={onLogout}
+              title="Çıkış Yap"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                borderRadius: '6px',
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#EF4444'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        )}
       </aside>
     </>
   )
