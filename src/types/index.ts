@@ -8,6 +8,7 @@ export interface FileMetadata {
   fileName: string
   fileType: string
   fileSize: number
+  extractedContent?: string
 }
 
 // Chat types
@@ -23,6 +24,7 @@ export interface Conversation {
   id: string
   title: string
   messages: Message[]
+  summary?: string
   createdAt: Date
   updatedAt: Date
 }

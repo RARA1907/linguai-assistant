@@ -40,7 +40,6 @@ export function useConversations(userId: string | null) {
           .eq('conversation_id', row.id)
           .order('created_at', { ascending: true })
 
-        // Load file metadata for this conversation
         const { data: fileData } = await supabase
           .from('linguai_files')
           .select('*')
@@ -54,6 +53,7 @@ export function useConversations(userId: string | null) {
             fileName: f.file_name,
             fileType: f.file_type,
             fileSize: f.file_size,
+            extractedContent: f.extracted_content ?? undefined,
           })
           filesByMessageId.set(f.message_id, existing)
         }
@@ -61,6 +61,7 @@ export function useConversations(userId: string | null) {
         return {
           id: row.id,
           title: row.title,
+          summary: row.summary ?? undefined,
           messages: (msgs || []).map((m: any) => ({
             id: m.id,
             role: m.role,
@@ -157,6 +158,12 @@ export function useConversations(userId: string | null) {
     )
   }, [])
 
+  const updateSummary = useCallback((conversationId: string, summary: string) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conversationId ? { ...c, summary } : c))
+    )
+  }, [])
+
   return {
     conversations,
     activeId,
@@ -167,5 +174,6 @@ export function useConversations(userId: string | null) {
     addMessage,
     saveFileMetadata,
     updateTitle,
+    updateSummary,
   }
 }

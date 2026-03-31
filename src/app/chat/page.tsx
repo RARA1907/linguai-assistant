@@ -41,6 +41,7 @@ export default function ChatPage() {
     addMessage,
     saveFileMetadata,
     updateTitle,
+    updateSummary,
   } = useConversations(user?.id ?? null)
 
   const [isLoading, setIsLoading] = useState(false)
@@ -65,6 +66,8 @@ export default function ChatPage() {
     await createConversation('New conversation')
   }, [createConversation])
 
+  const SUMMARIZE_THRESHOLD = 10
+
   const handleSend = useCallback(async (content: string, files?: AttachedFile[]) => {
     let currentId = activeId
 
@@ -81,7 +84,7 @@ export default function ChatPage() {
 
     await addMessage(currentId, userMessage)
 
-    // Save file metadata to DB
+    // Save file metadata to DB (extracted_content API tarafından doldurulacak)
     if (files && files.length > 0) {
       await saveFileMetadata(
         userMessage.id,
@@ -109,7 +112,12 @@ export default function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messagesToSend, files }),
+        body: JSON.stringify({
+          messages: messagesToSend,
+          files,
+          conversationId: currentId,
+          messageId: userMessage.id,
+        }),
       })
 
       if (!res.ok || !res.body) {
@@ -137,6 +145,21 @@ export default function ChatPage() {
 
       setStreamingContent(null)
       await addMessage(currentId, assistantMessage)
+
+      // Seviye 2: Yeterli mesaj varsa özet oluştur (fire & forget)
+      const totalMessages = [...history, userMessage, assistantMessage].length
+      if (totalMessages >= SUMMARIZE_THRESHOLD) {
+        fetch('/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversationId: currentId }),
+        }).then(async (r) => {
+          if (r.ok) {
+            const data = await r.json()
+            if (data.summary) updateSummary(currentId!, data.summary)
+          }
+        }).catch(() => {})
+      }
     } catch (err) {
       setStreamingContent(null)
       const errorMessage: Message = {
@@ -150,7 +173,7 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [activeId, conversations, createConversation, addMessage, saveFileMetadata, updateTitle])
+  }, [activeId, conversations, createConversation, addMessage, saveFileMetadata, updateTitle, updateSummary])
 
   if (authLoading) {
     return (
